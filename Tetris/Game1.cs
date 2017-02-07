@@ -11,10 +11,14 @@ namespace Tetris
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
+        MainGame newGame;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            graphics.PreferredBackBufferHeight = 800;
+            graphics.PreferredBackBufferWidth = 400;
+            graphics.ApplyChanges();
             Content.RootDirectory = "Content";
         }
 
@@ -27,7 +31,9 @@ namespace Tetris
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
+            newGame = new MainGame();
 
+            newGame.Intialize();
             base.Initialize();
         }
 
@@ -39,6 +45,7 @@ namespace Tetris
         {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
+            newGame.LoadContent(Content);
 
             // TODO: use this.Content to load your game content here
         }
@@ -63,7 +70,7 @@ namespace Tetris
                 Exit();
 
             // TODO: Add your update logic here
-
+            newGame.Update(gameTime);
             base.Update(gameTime);
         }
 
@@ -76,7 +83,9 @@ namespace Tetris
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             // TODO: Add your drawing code here
-
+            spriteBatch.Begin();
+            newGame.Draw(spriteBatch);
+            spriteBatch.End();
             base.Draw(gameTime);
         }
     }
