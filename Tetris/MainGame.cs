@@ -24,21 +24,24 @@ namespace Tetris
         int StepTIme = 300;
         int KeyBoardUpdateTime = 0;
 
+        bool GameOver = false;
         Texture2D texture;
 
         Vector2 SpawnedBlockPosition;
 
         Color[] MultiplyColors =
         {
-            Color.Transparent,
-            Color.Violet,
-            Color.Blue,
-            Color.Brown,
-            Color.Red,
-            Color.Green,
-            Color.WhiteSmoke,
-            Color.Silver
+                                    Color.Transparent,  /* 0 */
+                                    Color.Orange,       /* 1 */
+                                    Color.Blue,         /* 2 */
+                                    Color.Red,          /* 3 */
+                                    Color.LightSkyBlue, /* 4 */
+                                    Color.Yellow,       /* 5 */
+                                    Color.Magenta,      /* 6 */
+                                    Color.LimeGreen     /* 7 */
         };
+
+        SpriteFont font;
 
         public enum RotateDirections
         {
@@ -142,6 +145,7 @@ namespace Tetris
         public void LoadContent(ContentManager Content)
         {
             texture = Content.Load<Texture2D>("boardTexture");
+            font = Content.Load<SpriteFont>("font");
         }
 
         #endregion
@@ -164,9 +168,12 @@ namespace Tetris
                     SpawnBlock();
 
                     currentPlaceState = CanPlace((int)SpawnedBlockPosition.X, (int)SpawnedBlockPosition.Y, SpawnedBlock, board);
-                    if(currentPlaceState == PlaceStates.FUCKED)
+
+                    if (currentPlaceState == PlaceStates.FUCKED)
                     {
                         Console.WriteLine("FUCKED");
+                        GameOver = true;
+                        
                     }
 
                 }
@@ -183,12 +190,12 @@ namespace Tetris
             if (KeyBoardUpdateTime > 200)
             {
 
-                if(State.IsKeyDown(Keys.Left))
+                if(State.IsKeyDown(Keys.Down))
                 {
-
+                    ElapsedTime += 175;
                 }
 
-                if (State.IsKeyDown(Keys.A) || State.IsKeyDown(Keys.D))
+                if (State.IsKeyDown(Keys.Left) || State.IsKeyDown(Keys.Right))
                 {
                     Vector2 NewSpawnedBlockPosition = SpawnedBlockPosition + new Vector2(State.IsKeyDown(Keys.Left) ? -1 : 1, 0);
                     PlaceStates currentPlaceState = CanPlace((int)NewSpawnedBlockPosition.X, (int)NewSpawnedBlockPosition.Y, SpawnedBlock, board);
@@ -198,6 +205,14 @@ namespace Tetris
                     }
                     KeyBoardUpdateTime = 0;
                 }
+
+                if(State.IsKeyDown(Keys.Up))
+                {
+                    Rotate(RotateDirections.Left, SpawnedBlock);
+
+                    KeyBoardUpdateTime = 0;
+                }
+
                 
             }
 
@@ -225,9 +240,12 @@ namespace Tetris
                         board[coordx, coordy] = block[px, py];
                     }
                 }
+
+            RemoveLines(board);
+
         }
 
-        #region PLACEREGION
+        #region CANPLACEREGION
         public PlaceStates CanPlace(int x, int y, int[,] currentBlock, int[,] board)
         {
             int dim = currentBlock.GetLength(0);
@@ -279,27 +297,56 @@ namespace Tetris
         {
             int dim = piece.GetLength(0);
 
-            int[,] npiece = new int[dim, dim];
+             int[,] npiece = new int[dim, dim];
 
+            for (int x = 0; x < dim; ++x)
+                for (int y = 0; y < dim; ++y)
+                {
+                    npiece[y, x] = piece[x, dim - 1 - y];
+                }
 
+            for (int x = 0; x < dim; ++x)
+                for (int y = 0; y < dim; ++y)
+                {
+                    piece[x, y] = npiece[x, y];
+                }
 
-            if (direction == RotateDirections.Left)
-            {
-
-                for (int x = 0; x < dim; ++x)
-                    for (int y = 0; y < dim; ++y)
-                        npiece[x, y] = piece[y, x - 1 - dim];
-            }
-
-            if (direction == RotateDirections.Right)
-            {
-                for (int x = 0; x < dim; ++x)
-                    for (int y = 0; y < dim; ++y)
-                        npiece[y, x] = piece[x, y];
-
-            }
+            // piece = npiece;
         }
 
+
+        #endregion
+
+        #region RemovelinesRegion
+
+        public void RemoveLines(int[,] board)
+        {
+            for(int y=BOARD_HEIGHT-1;y>=0;--y)
+            {
+                bool isRowComplete = true;
+
+                for(int x=0;x<BOARD_WIDTH;++x)
+                {
+                    if(board[x,y]==0)
+                    {
+                        isRowComplete = false;
+                    }
+                }
+
+                if(isRowComplete)
+                {
+                    for(int yc=y;yc>0;--yc)
+                    {
+                        for(int x=0;x<BOARD_WIDTH;++x)
+                        {
+                            board[x, yc] = board[x, yc - 1];
+                        }
+                    }
+
+                    y++;
+                }
+            }
+        }
 
         #endregion
 
@@ -312,27 +359,33 @@ namespace Tetris
             for (int x = 0; x < BOARD_WIDTH; ++x)
                 for (int y = 0; y < BOARD_HEIGHT; ++y)
                 {
+                    Color tintColor = Color.FromNonPremultiplied(50, 50, 50, 50);
+
                     if (board[x, y] == 0)
-                        spriteBatch.Draw(texture, new Rectangle(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE), (Color.FromNonPremultiplied(100, 100, 150, 150)));
+                        spriteBatch.Draw(texture, new Rectangle(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE), new Rectangle(0, 0, 40, 40), tintColor);
+
+                    #endregion
+
+                    #region DrawPieces
                 }
-            #endregion
+                    int dim = SpawnedBlock.GetLength(0);
+                    for (int px = 0; px < dim; ++px)
+                        for (int py = 0; py < dim; ++py)
+                        {
 
-            #region DrawPieces
+                            if (SpawnedBlock[px, py] != 0)
+                            {
+                                Color titColor = MultiplyColors[SpawnedBlock[px, py]];
+                                spriteBatch.Draw(texture, new Rectangle((int)(SpawnedBlockPosition.X + px) * BLOCK_SIZE, ((int)SpawnedBlockPosition.Y + py) *   BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE),new Rectangle(0,0,40,40), titColor);
+                            }
+                        }
 
-            int dim = SpawnedBlock.GetLength(0);
-            for (int x = 0; x < dim; ++x)
-                for (int y = 0; y < dim; ++y)
-                {
-
-                    if (SpawnedBlock[x, y] != 0)
+                    if (GameOver)
                     {
-                        Color titColor = MultiplyColors[SpawnedBlock[x, y]];
-                        spriteBatch.Draw(texture, new Rectangle((int)(SpawnedBlockPosition.X + x) * BLOCK_SIZE, ((int)SpawnedBlockPosition.Y + y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE), titColor);
+                        spriteBatch.DrawString(font, "GAME OVER", new Vector2(100, 300), Color.White);
                     }
-                }
 
-
-
+                
             #endregion
         }
 
